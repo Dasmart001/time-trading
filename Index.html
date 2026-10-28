@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Time Trading · $CLOCK</title>
+<meta name="description" content="Time Trading: buy, sell and offer hours of time, priced in $CLOCK by real offers and bids.">
+<meta name="theme-color" content="#10223A">
+<!-- Set the address of your deployed market server here (or leave empty if index.html is served by server.js). -->
+<meta name="tt-api" content="">
+<meta property="og:title" content="Time Trading · $CLOCK"><meta property="og:description" content="Every hour is a market.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%2310223A'/%3E%3Cpath d='M32 16v16l10 6' stroke='%23D99A00' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EAEFED;--card:#F8FAF9;--card2:#FFFFFF;--seg:#DDE5E2;--ink:#10223A;--mute:#5B6B7B;--line:#CAD4D1;--g:#0B7A78;--r:#BF3B36;--amber:#D99A00;--focus:#1F5FBF}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 'Bricolage Grotesque',system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+button,input{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:flex-end;padding:8px 0 16px}
+h1{margin:0;font-size:clamp(32px,8vw,52px);line-height:.95;font-weight:800;letter-spacing:-.04em}
+h1 em{font-style:normal}
+.sub{margin:6px 0 0;color:var(--mute)}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:110px}
+.stat span{display:block;color:var(--mute);font-size:12px}.stat b{font-size:20px;font-weight:600}
+.up{color:var(--g)}.dn{color:var(--r)}
+[hidden]{display:none!important}
+.grid,.dgrid{display:grid;gap:14px}
+@media(min-width:900px){.dgrid{grid-template-columns:1fr 340px}.trade{align-self:start}.grid{grid-template-columns:1fr 1fr;align-items:start}}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 0 14px}
+.bar>button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 16px;font-weight:600}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+
+h2{margin:0;font-size:18px;font-weight:600}
+.seg{display:flex;gap:4px;background:var(--seg);border-radius:10px;padding:3px;margin:10px 0;overflow-x:auto}
+.seg button{flex:1 0 auto;border:0;background:transparent;border-radius:8px;padding:7px 12px;white-space:nowrap;color:var(--mute)}
+.seg button.on{background:var(--ink);color:#fff}
+.hours{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px}
+.h{position:relative;border:1px solid var(--line);background:var(--card2);border-radius:10px;padding:7px 4px;text-align:center}
+.h b{display:block;font-weight:600}.h span{display:block;font-size:12px}
+.h.sel{background:#E5EEFA;border-color:var(--focus);box-shadow:0 0 0 2px var(--focus)}
+.h:disabled{opacity:.3;cursor:not-allowed}
+.h i{position:absolute;top:5px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--amber)}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.price{text-align:right}.price b{font-size:30px;font-weight:800;letter-spacing:-.02em}.price span{display:block;font-size:13px}
+.ohlc{font-size:12px;color:var(--mute);min-height:18px;margin-bottom:4px}
+@media(max-width:600px){canvas{height:230px!important}}canvas{background:#fff;border:1px solid var(--line);display:block;width:100%;height:290px;touch-action:pan-y;border-radius:8px}
+.help{color:var(--mute);font-size:13px;margin:8px 0 0}
+dl{margin:12px 0;display:grid;grid-template-columns:1fr auto;gap:6px 12px}
+dt{color:var(--mute)}dd{margin:0;text-align:right;font-weight:600}
+label{display:block;margin-top:10px;color:var(--mute);font-size:13px}
+input{width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card2);font-size:16px}
+.quick{display:flex;gap:6px;margin-top:8px}.quick button{flex:1;border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px;color:var(--mute)}
+.cta{width:100%;border:0;border-radius:10px;color:#fff;padding:13px;font-weight:800;font-size:16px;background:var(--g)}
+.cta.sell{background:var(--r);color:#fff}.cta:disabled{background:#9AA7B4;color:#fff;cursor:not-allowed}
+.posbox{background:var(--seg);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px}
+ul{list-style:none;margin:10px 0 0;padding:0}
+li{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+li .m{color:var(--mute);font-size:13px}li .r{text-align:right}
+li button{grid-column:1/-1;justify-self:start;border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 12px}
+.empty{color:var(--mute);padding:12px 0}.demo-only{display:none}body.demo .demo-only{display:inline}.ver{color:var(--mute);font-size:12px;align-self:center}.chk{display:flex;align-items:flex-start;margin-top:12px;color:var(--ink);font-size:13px}input[type=checkbox]{width:20px;height:20px;margin:1px 8px 0 0;padding:0;flex:none}.chk .link{display:inline;margin:0;padding:0}.doc{max-height:55vh;overflow:auto;font-size:14px;margin:10px 0}.doc p{margin:0 0 10px}.doc b{display:block}
+.coach{position:fixed;left:10px;top:10px;width:min(250px,calc(100vw - 20px));background:var(--ink);color:#fff;border-radius:14px;padding:9px 12px;z-index:15;box-shadow:0 6px 20px rgba(16,34,58,.3);font-size:13px;line-height:1.35}
+.coach b{display:block;font-size:14px}.coach #ctext{display:block;color:#D5DEE8;margin-top:2px}
+.crow{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:#9FB0C3}
+.crow button{border:0;background:none;color:#9FC2FF;font-size:12px;padding:2px 4px}
+.crow .nx{margin-left:auto;background:#fff;color:var(--ink);border-radius:8px;padding:5px 10px;font-weight:700}
+#tarc{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:14}
+.tour-hl{outline:3px solid var(--amber)!important;outline-offset:3px;border-radius:10px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{outline-color:rgba(217,154,0,.35)}}textarea{width:100%;margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit;font-size:16px;resize:vertical}.pill{display:inline-block;background:var(--seg);border-radius:99px;padding:2px 10px;font-size:12px;color:var(--ink);margin-left:4px;white-space:nowrap}#token section{margin-bottom:14px}#token .steps{margin-top:10px}.link{display:block;margin:10px auto 0;border:0;background:none;color:var(--focus);text-decoration:underline;padding:6px}.guide{margin-bottom:14px}.guide .link{margin:6px 0 0;padding:0}li.grp{display:block;font-size:12px;font-weight:600;color:var(--mute);padding:12px 0 4px}summary{cursor:pointer;font-weight:600;font-size:18px}details .help{margin-top:10px}.acts button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 14px}.acts button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}button.stat{font:inherit;color:inherit;text-align:left;cursor:pointer}#wallet section{margin-bottom:14px}#cTag{color:var(--mute)}.modal{position:fixed;inset:0;background:rgba(16,34,58,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}.mbox{background:var(--card);border-radius:16px;padding:20px;max-width:380px;width:100%}.step{display:flex;gap:8px;margin-top:10px}.step input{margin:0;text-align:center;font-size:20px;font-weight:600}.step button{width:52px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:22px}button{transition:transform .08s}button:active:not(:disabled){transform:scale(.97)}.h:not(:disabled):hover{border-color:var(--focus)}main{animation:rise .28s ease both}@keyframes rise{from{opacity:0;transform:translateY(8px)}}.how{margin-bottom:14px}.steps{display:grid;gap:6px;margin-top:8px;color:var(--mute);font-size:14px}@media(min-width:700px){.steps{grid-template-columns:repeat(3,1fr)}}.acts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+footer{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;color:var(--mute);font-size:13px;padding:16px 0 28px}
+footer button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 12px}
+#toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-30px);z-index:20;opacity:0;background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;transition:.25s;max-width:90vw;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}#toast.bad{background:var(--r)}
+@media(prefers-reduced-motion:reduce){.tour-hl{animation:none}#toast{transition:none}main{animation:none}button{transition:none}}
+
+.book{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;font-size:13px}.book h3{margin:0 0 4px;font-size:12px;color:var(--mute);font-weight:600}.book .m{color:var(--mute)}.brow{display:flex;justify-content:space-between;padding:2px 6px;border-radius:4px;margin-bottom:2px}.brow.a{background:rgba(191,59,54,.09)}.brow.b{background:rgba(11,122,120,.09)}
+.net{position:fixed;left:0;right:0;top:0;background:var(--r);color:#fff;text-align:center;padding:6px;font-size:13px;z-index:30}
+.cap{font-size:11px!important;color:var(--mute)}
+#keybox{font-size:13px}
+</style>
+</head>
+<body>
+<div id="boot" style="padding:24px;font:16px/1.5 system-ui,sans-serif;color:#10223A"><b>Loading Time Trading…</b><br>If this message stays on screen, the page did not finish loading. Refresh, or check that the whole file was uploaded.</div>
+<noscript><p style="padding:24px;font:16px system-ui">Time Trading needs JavaScript. Please turn it on and reload.</p></noscript>
+<div class="net" id="net" hidden>Reconnecting to the market…</div>
+<div class="wrap">
+<header id="hdr">
+  <div><h1>Time <em>Trading</em></h1><p class="sub">Trade hours of time, priced in $CLOCK. <span class="pill" id="modepill">Connecting…</span></p></div>
+  <div class="stats"><button class="stat" id="walletBtn" aria-label="Open wallet"><span>Wallet · $CLOCK</span><b id="bal">–</b></button></div>
+</header>
+<main id="home">
+<div class="grid">
+<section class="watch">
+  <h2>Pick a time</h2>
+  <p class="help">Each box is one hour of someone’s time. The price comes from real offers and bids. Tap one to trade it. When it starts, you meet the provider and both check in.</p>
+  <div class="seg" id="days" role="group" aria-label="Day"></div>
+  <div class="hours" id="hours"></div>
+</section>
+<section class="port">
+  <h2>Portfolio</h2>
+  <div class="seg" id="ptabs"><button data-p="act">Active</button><button data-p="hist">History</button></div>
+  <ul id="plist"></ul>
+</section>
+</div>
+</main>
+<main id="detail" hidden>
+<div class="bar"><button id="back">← All times</button><div class="stat"><span>Balance ($CLOCK)</span><b id="bal2">–</b></div></div>
+<div class="dgrid">
+<section class="chartc">
+  <div class="top"><div><h2 id="cTitle"></h2><div class="sub" id="cSub"></div></div><div class="price"><b id="cPrice"></b><span id="cChg"></span><span id="cTag"></span></div></div>
+  <div class="ohlc" id="ohlc"></div>
+  <canvas id="chart" role="img" aria-label="Candlestick chart for the selected hour"></canvas>
+  <p class="help">Each candle is 5 minutes of real trades. Green rose, red fell. The dotted amber line is this hour’s usual price.</p>
+  <div class="book" id="book"></div>
+</section>
+<section class="trade" aria-label="Trade">
+  <div class="seg" id="side"><button data-s="buy">Buy</button><button data-s="sell">Sell</button></div>
+  <label id="priceLbl" for="price">Price per hour</label><input id="price" type="number" min="0" step="0.01" inputmode="decimal">
+  <div class="step"><button data-n="-1" aria-label="Fewer hours">−</button><input id="units" type="number" min="1" max="4" step="1" value="1" inputmode="numeric" aria-label="Hours"><button data-n="1" aria-label="More hours">+</button></div>
+  <dl id="sum"></dl>
+  <button class="cta" id="go"></button>
+  <button class="link" id="toProvide"></button>
+  <p class="help" id="shelp"></p>
+</section>
+</div>
+</main>
+<main id="wallet" hidden>
+<div class="bar"><button id="back2">← Back</button></div>
+<section>
+  <div class="sub" id="wHandle"></div>
+  <div class="price" style="text-align:left;margin-top:8px"><b id="wBal"></b><span id="wCur"></span></div>
+  <div class="acts" style="margin-top:14px"><button class="pri" id="faucet" hidden>Add 100 test credits</button><button id="logout">Log out of this device</button></div>
+  <details style="margin-top:12px"><summary>Use on another device</summary><p class="help">Anyone with this key controls your account. Keep it private. On another device choose “I already have a login key”.</p><input id="keybox" readonly aria-label="Login key"><button class="link" id="copykey">Copy key</button></details>
+</section>
+<section><h2>Your record</h2><dl id="wStats"></dl></section>
+<section><details><summary>Proof of Time receipts</summary><p class="help">Every finished session is sealed with a fingerprint that includes the one before it, signed by the market. If any record is changed, the chain breaks.</p><div class="acts" style="margin-top:10px"><button id="verify">Verify chain</button></div><ul id="wRc"></ul></details></section>
+<section><h2>Activity</h2><ul id="wLedger"></ul></section>
+<button class="link" id="toToken">How $CLOCK is used</button>
+</main>
+<main id="token" hidden>
+<div class="bar"><button id="back3">← Back</button></div>
+<section><h2>How $CLOCK is used</h2><p class="help" id="tNote"></p><dl id="tStats"></dl></section>
+<section><h2>Where $CLOCK goes</h2>
+  <div class="steps"><span><b>Pay.</b> Buyers pay $CLOCK for hours of time. It is held safely until the hour is delivered.</span><span><b>Deposit.</b> Providers put down a deposit and get it back after they show up.</span><span><b>Fee and burn.</b> Each trade pays a 0.25% fee, and 30% of that fee is burned.</span></div></section>
+</main>
+<footer id="ftr">
+  <span><button id="tourBtn">Replay tour</button> <button id="fb">Send feedback</button> <button id="helpBtn">Help</button> <button id="legalBtn">Terms and privacy</button> <span class="demo-only"><button id="skip">Skip ahead 30 min</button></span> <span class="ver">v2.0 · live market</span></span>
+</footer>
+</div>
+<div class="modal" id="connect" hidden><div class="mbox"><h2>Connect to the market</h2><p class="help" id="connmsg">Time Trading needs its market server. Enter the server address.</p><input id="apiurl" placeholder="http://localhost:3000" autocomplete="off" aria-label="Server address"><div style="height:12px"></div><button class="cta" id="conngo">Connect</button></div></div>
+<div class="modal" id="welcome" hidden><div class="mbox"><h2>Welcome to Time Trading</h2><p class="help">Choose a handle. Other traders will see it.</p>
+  <input id="handle" maxlength="20" placeholder="your handle" autocomplete="off" aria-label="Handle">
+  <label class="chk"><input type="checkbox" id="agree"><span id="consent"></span></label>
+  <div style="height:12px"></div><button class="cta" id="start">Start</button>
+  <button class="link" id="haskey" type="button">I already have a login key</button>
+  <div id="keyrow" hidden><input id="keyin" placeholder="Paste your login key" autocomplete="off" aria-label="Login key"><div style="height:8px"></div><button class="cta" id="keygo">Sign in</button></div>
+</div></div>
+<div class="modal" id="legalm" hidden><div class="mbox"><h2>Terms and privacy</h2><div class="doc" id="termsdoc"></div><button class="cta" data-close="legalm">Close</button></div></div>
+<div class="modal" id="helpm" hidden><div class="mbox"><h2>Help</h2><div class="doc">
+<p><b>How does it work?</b>Every hour is its own market. Buy an hour, and when it starts you meet the provider for one hour. Both of you tap Check in.</p>
+<p><b>Where do prices come from?</b>From real offers and bids by other people. If nobody has traded an hour yet, there is no price until someone offers or bids.</p>
+<p><b>What if the provider does not show?</b>You are refunded and receive their deposit as a bonus.</p>
+<p><b>What if I forget to check in?</b>You get no refund. Providers who forget lose their deposit.</p>
+<p><b>Can I sell an hour back?</b>Yes, any time before it starts.</p>
+<p><b>How do I use my account on another device?</b>Open your wallet, copy your login key, and choose “I already have a login key” on the other device.</p></div><button class="cta" data-close="helpm">Close</button></div></div>
+<div class="modal" id="fbm" hidden><div class="mbox"><h2>Send feedback</h2><p class="help">Tell us what was confusing or broken. The report includes your recent taps, so we can see where you got stuck.</p><textarea id="fbtext" rows="4" placeholder="What was confusing?" aria-label="Feedback"></textarea><textarea id="fbout" rows="6" readonly hidden aria-label="Report to copy"></textarea><div class="acts" style="margin-top:12px"><button class="pri" id="fbcopy">Copy report</button><button id="fbclose">Close</button></div></div></div>
+<svg id="tarc" aria-hidden="true"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#D99A00"/></marker></defs><path id="tpath" d="" fill="none" stroke="#D99A00" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ah)"/></svg>
+<div class="coach" id="coach" role="dialog" aria-live="polite" aria-label="Guided tour" hidden><b id="ctitle"></b><span id="ctext"></span><div class="crow"><span id="cstep"></span><button id="cskip" aria-label="Skip tour">Skip</button><button class="nx" id="cnext">Next</button></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+const $=s=>document.querySelector(s);
+const HR=36e5,FEE=.0025;
+let L;try{L=JSON.parse(localStorage.getItem('tt5'))||{}}catch(e){L={}}
+const saveL=()=>{try{localStorage.setItem('tt5',JSON.stringify(L))}catch(e){}};
+let API='',CFG=null,ME=null,MK={},SL=null,LG=[],RC=[],STAT=null,skew=0,view='home',selT=null,selDay=0,side='buy',pt='act',hover=null,lay={cw:10,n:1},fromHome=false,lastMsg='';
+const now=()=>Date.now()+skew;
+const f=(n,d=2)=>Number(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const hr=h=>{h=((h%24)+24)%24;return (h%12||12)+(h<12?'am':'pm')};
+const tsl=(d,h)=>{const x=new Date(now());x.setHours(h,0,0,0);x.setDate(x.getDate()+d);return Math.ceil(x.getTime()/HR)*HR};
+const dayWord=t=>{const d=Math.round((new Date(t).setHours(0,0,0,0)-new Date(now()).setHours(0,0,0,0))/864e5);return d==0?'Today':d==1?'Tomorrow':new Date(t).toLocaleDateString(undefined,{weekday:'short',day:'numeric'})};
+const label=t=>{const h=new Date(t).getHours();return dayWord(t)+' '+hr(h)+'–'+hr(h+1)};
+const timeStr=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+let tt;const toast=(m,bad)=>{lastMsg=m;const e=$('#toast'),c=$('#coach');e.style.top=(c&&!c.hidden&&c.style.top&&parseFloat(c.style.top)<200)?(c.getBoundingClientRect().bottom+8)+'px':'14px';e.textContent=m;e.className='show'+(bad?' bad':'');clearTimeout(tt);tt=setTimeout(()=>e.className='',2800)};
+const clsPct=p=>p>=0?'up':'dn';
+const sigs=new WeakMap();
+function morph(el,html){
+  const sig=html.replace(/[\d.,+\-]+/g,'#');
+  if(sigs.get(el)!==sig||!el.firstChild){el.innerHTML=html;sigs.set(el,sig);return}
+  const t=document.createElement('div');t.innerHTML=html;
+  (function w(a,b){if(!a.children.length){if(a.textContent!==b.textContent)a.textContent=b.textContent}else for(let i=0;i<a.children.length;i++)w(a.children[i],b.children[i])})(el,t);
+}
+async function api(p,o={}){
+  const r=await fetch(API+p,{method:o.method||'GET',headers:{'Content-Type':'application/json',...(L.token?{Authorization:'Bearer '+L.token}:{})},body:o.body?JSON.stringify(o.body):undefined});
+  const j=await r.json().catch(()=>({}));
+  if(j.now)skew=j.now-Date.now();
+  if(!r.ok)throw Object.assign(new Error(j.error||'Request failed'),{status:r.status});
+  return j;
+}
+function logAct(b){const l=b.id||Object.entries(b.dataset).map(([k,v])=>k+'='+v).join(',')||b.textContent.trim().slice(0,20);L.log=L.log||[];L.log.unshift([Date.now(),l]);L.log.length=Math.min(L.log.length,40)}
+function report(){
+  const t=(L.t1&&L.t0)?Math.round((L.t1-L.t0)/1000)+'s':'no order yet',u=ME?ME.user:{};
+  const acts=(L.log||[]).slice(0,20).reverse().map(a=>new Date(a[0]).toLocaleTimeString()+' '+a[1]).join('\n');
+  return `Time Trading feedback\nTester: @${L.handle||'guest'}\nDevice: ${navigator.userAgent}\nScreen: ${innerWidth}x${innerHeight}\nTime to first order: ${t}\nOrders placed: ${L.nord||0}\nSessions attended: ${u.att||0}, missed: ${(u.miss||0)+(u.slash||0)}\n\nComment:\n${$('#fbtext').value.trim()||'(none)'}\n\nRecent actions:\n${acts}`;
+}
+
+/* ---------- boot ---------- */
+function showConnect(msg){$('#connmsg').textContent=msg||'Time Trading needs its market server. Enter the server address.';$('#apiurl').value=L.api||'';$('#connect').hidden=false}
+function showWelcome(){$('#welcome').hidden=false}
+function applyConfig(){
+  const test=CFG.mode==='test';
+  $('#modepill').textContent=test?'Test credits · no real value':'Live';
+  $('#wCur').textContent=test?'test credits':'$CLOCK';
+  $('#consent').innerHTML=(test?'I understand $CLOCK here is test credit with no real value.':'I understand trading involves real value and risk of loss, and that no profit is promised.')+' I accept the <button class="link" id="legalBtn2" type="button">terms and privacy note</button>.';
+  $('#termsdoc').innerHTML=test
+   ?'<p><b>What this is</b>Time Trading in test mode. $CLOCK here is test credit. It has no real value and cannot be withdrawn. Prices come from offers and bids by other people using the same market.</p><p><b>No advice</b>Nothing here is financial, investment or legal advice, and nothing is a promise of profit.</p><p><b>Your data</b>Your handle, balance and activity are stored on the market server. Your handle is visible to other traders. Your login key stays on this device. You can log out from your wallet.</p><p><b>If this changes</b>If the market goes live with real value, separate terms will apply and you will be asked to agree again.</p>'
+   :'<p><b>Risk</b>Trading hours of time involves real value and the risk of loss. Prices come from other people’s offers and bids. No one can promise you a profit.</p><p><b>No advice</b>Nothing here is financial, investment or legal advice.</p><p><b>Your data</b>Your handle, balance and activity are stored on the market server. Your handle is visible to other traders.</p><p><b>Operator</b>The operator must provide the full terms for live use.</p>';
+  $('#tNote').textContent=test?'In test mode $CLOCK is test credit with no real value. This page shows how it flows through the product.':'This page shows how $CLOCK flows through the product.';
+  $('#faucet').hidden=!test;
+  if(test&&/[?&]demo\b/.test(location.search))document.body.classList.add('demo');
+}
+async function boot(){
+  const bt=$('#boot');if(bt)bt.remove();
+  const m=document.querySelector('meta[name=tt-api]');
+  const cands=[new URLSearchParams(location.search).get('api'),m&&m.content,location.protocol.startsWith('http')?location.origin:null,L.api].filter(Boolean).map(x=>x.replace(/\/$/,''));
+  for(const c of [...new Set(cands)]){API=c;try{CFG=await api('/api/config');break}catch(e){CFG=null}}
+  if(!CFG){API='';showConnect(cands.length&&location.protocol.startsWith('http')&&cands.length>1?'Cannot reach the market server. Check the address and try again.':'This page needs the Time Trading market server. Enter its address below. If you host this page yourself, put the address in the tt-api line near the top of index.html.');return}
+  L.api=API;saveL();applyConfig();
+  if(L.token){try{await refreshMe()}catch(e){if(e.status===401){L.token=null;saveL()}}}
+  if(!L.token)showWelcome();
+  route();poll();setInterval(poll,2000);setInterval(()=>{if(CFG&&L.token)renderAll()},1000);
+}
+async function joinNow(){
+  const h=$('#handle').value.trim();
+  if(!/^[A-Za-z0-9_.-]{2,20}$/.test(h))return toast('Use 2 to 20 letters, numbers, dots or dashes.',1);
+  if(!$('#agree').checked)return toast('Please tick the box to continue.',1);
+  try{const j=await api('/api/join',{method:'POST',body:{handle:h}});L.token=j.token;L.handle=h;L.t0=Date.now();L.tour=0;tbase();saveL();$('#welcome').hidden=true;await refreshMe();route();toast('Welcome, @'+h+'.')}
+  catch(e){toast(e.message,1)}
+}
+async function keyIn(){
+  const k=$('#keyin').value.trim();if(!k)return;
+  const old=L.token;L.token=k;
+  try{await refreshMe();L.handle=ME.user.handle;saveL();$('#welcome').hidden=true;route();toast('Signed in as @'+L.handle+'.')}
+  catch(e){L.token=old;toast('That login key was not recognised.',1)}
+}
+function logout(expired){L.token=null;L.handle=null;L.tour=null;saveL();ME=null;location.hash='#/';showWelcome();toast(expired?'You were signed out. Please sign in again.':'Logged out of this device.',expired)}
+async function refreshMe(){ME=await api('/api/me')}
+
+/* ---------- polling ---------- */
+async function poll(){
+  if(!CFG||!L.token)return;
+  try{
+    const jobs=[refreshMe(),api('/api/market').then(j=>{MK={};j.slots.forEach(s=>{MK[s.t]=s})})];
+    if(view==='detail'&&selT){const t=selT;jobs.push(api('/api/slot/'+t).then(j=>{if(selT===t)SL=j}))}
+    if(view==='wallet')jobs.push(api('/api/ledger').then(j=>{LG=j.items}),api('/api/receipts').then(j=>{RC=j.items}));
+    if(view==='home'&&pt==='hist')jobs.push(api('/api/ledger').then(j=>{LG=j.items}));
+    if(view==='token')jobs.push(api('/api/stats').then(j=>{STAT=j}));
+    await Promise.all(jobs);$('#net').hidden=true;
+  }catch(e){if(e.status===401){logout(true);return}$('#net').hidden=false}
+  renderAll();
+}
+
+/* ---------- renderers ---------- */
+const mineAt=t=>ME&&(ME.units.some(u=>u.t===t&&u.status==='held')||ME.orders.some(o=>o.t===t));
+function renderHead(){$('#bal').textContent=ME?f(ME.user.bal):'–';$('#bal2').textContent=ME?f(ME.user.bal):'–'}
+function renderHours(){
+  morph($('#days'),Array.from({length:7},(_,d)=>`<button data-d="${d}" class="${d===selDay?'on':''}">${dayWord(tsl(d,12))}</button>`).join(''));
+  morph($('#hours'),Array.from({length:24},(_,h)=>{const t=tsl(selDay,h),dis=t<=now(),m=MK[t]||{},p=m.last!=null?m.last:m.ask;
+    const cap=dis?'closed':m.last!=null?'last trade':m.ask!=null?'offer':'no offers';
+    return `<button class="h" data-h="${h}" ${dis?'disabled':''}>${mineAt(t)?'<i></i>':''}<b>${hr(h)}</b><span>${dis||p==null?'–':f(p)}</span><span class="cap">${cap}</span></button>`}).join(''));
+}
+function renderPort(){
+  document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===pt));
+  const n=now();let h='';
+  if(pt==='act'&&ME){
+    const ses=ME.units.filter(x=>x.status==='held'&&x.t<=n).map(x=>{const me=x.role==='holder',mine=me?x.hH:x.hP,theirs=me?x.hP:x.hH,who=me?x.provider:x.holder;
+      const st=mine?(theirs?'You both checked in':'You are here. Waiting for @'+who):(theirs?'@'+who+' is here. Tap Check in':'Happening now. Tap Check in');
+      return `<li><div><b>${label(x.t)}</b><div class="m">${me?'You are the buyer':'You provide'} · ${st}</div></div><div class="r"><b>${f(x.escrow)}</b></div>${mine?'':`<div class="acts"><button class="pri" data-a="here" data-id="${x.id}">Check in</button></div>`}</li>`}).join('');
+    const hrs=ME.units.filter(x=>x.role==='holder'&&x.status==='held'&&x.t>n).map(x=>`<li><div><b>${label(x.t)}</b><div class="m">Holding 1 h${x.listed?' · listed for sale':''} · from @${x.provider}</div></div><div class="r"><b>${f(x.escrow)}</b><div class="m">paid</div></div><button data-o="${x.t}">Open chart</button></li>`).join('');
+    const prv=ME.units.filter(x=>x.role==='provider'&&x.status==='held'&&x.t>n).map(x=>`<li><div><b>${label(x.t)}</b><div class="m">You provide 1 h · sold to @${x.holder} · check in when it starts</div></div><div class="r"><b>${f(x.escrow)}</b><div class="m">on delivery</div></div><button data-o="${x.t}">Open chart</button></li>`).join('');
+    const ords=ME.orders.map(o=>`<li><div><b>${label(o.t)}</b><div class="m">${o.side==='buy'?'Bid':o.kind==='provide'?'Offer':'Selling'} · ${o.rem} h at ${f(o.price)}</div></div><div class="r"><div class="m">waiting</div></div><button data-oc="${o.id}">Cancel</button></li>`).join('');
+    h=(ses?'<li class="grp">My sessions</li>'+ses:'')+((hrs||prv)?'<li class="grp">My hours</li>'+hrs+prv:'')+(ords?'<li class="grp">Open orders</li>'+ords:'');
+    h=h||'<li class="empty">Nothing yet. Tap an hour above to start.</li>';
+  }else if(pt==='hist')h=LG.map(e=>`<li><div>${e.n}<div class="m">${timeStr(e.t)}</div></div><div class="r ${e.d>0?'up':'dn'}"><b>${e.d>0?'+':''}${f(e.d)}</b></div></li>`).join('')||'<li class="empty">Finished trades appear here.</li>';
+  morph($('#plist'),h);
+}
+function cand(){
+  const cs=(SL&&SL.candles)||[];if(!cs.length)return[];
+  const st=3e5,m={};cs.forEach(c=>{m[c.k]=c});const out=[];let prev=null;
+  for(let k=cs[0].k;k<=Math.floor(now()/st)*st;k+=st){const c=m[k];if(c){out.push(c);prev=c.c}else out.push({k,o:prev,h:prev,l:prev,c:prev,v:0})}
+  return out.slice(-200);
+}
+function renderDetail(){
+  const t=selT,mi=Math.max(0,Math.floor((t-now())/6e4));
+  $('#cTitle').textContent=label(t);
+  $('#cSub').textContent='Gate closes in '+(mi>=60?Math.floor(mi/60)+'h ':'')+mi%60+'m';
+  const p=SL?(SL.last!=null?SL.last:SL.ask):null,u=SL&&SL.usual;
+  $('#cPrice').textContent=p==null?'–':f(p);
+  $('#cChg').textContent=!SL?'Loading…':SL.last!=null?'last trade':SL.ask!=null?'best offer':'no trades yet';
+  $('#cTag').textContent=(p!=null&&u)?(p<u*.95?'Below usual price':p>u*1.05?'Above usual price':'Near usual price'):(SL?'No usual price yet':'');
+  const A=(SL&&SL.asks)||[],B=(SL&&SL.bids)||[];
+  $('#book').innerHTML=`<div><h3>Offers (selling)</h3>${A.slice(0,4).map(x=>`<div class="brow a"><span>${f(x.p)}</span><span>${x.q} h</span></div>`).join('')||'<div class="m">None yet</div>'}</div><div><h3>Bids (buying)</h3>${B.slice(0,4).map(x=>`<div class="brow b"><span>${f(x.p)}</span><span>${x.q} h</span></div>`).join('')||'<div class="m">None yet</div>'}</div>`;
+  updTrade();draw();
+}
+function updTrade(){
+  const t=selT,live=t<=now(),u=Math.max(0,Math.floor(+$('#units').value||0)),pv=$('#price').value.trim(),pr=pv===''?null:+pv;
+  const caps=ME?ME.caps:{dep:.25,provide:1},held=ME?ME.units.filter(x=>x.t===t&&x.role==='holder'&&x.status==='held'&&!x.listed).length:0;
+  document.querySelectorAll('#side button').forEach(b=>b.classList.toggle('on',b.dataset.s===side));
+  $('#side').hidden=side==='provide';
+  $('#toProvide').textContent=side==='provide'?'← Back to buying':'Offer your own time instead';
+  const ref=SL?(SL.last!=null?SL.last:SL.bid!=null?SL.bid:SL.ask):null;
+  $('#priceLbl').textContent=side==='buy'?'Your price per hour (optional)':'Your price per hour';
+  $('#price').placeholder=side==='buy'?(SL&&SL.ask!=null?'Best offer '+f(SL.ask):'No offers yet, set a price'):(ref!=null?'e.g. '+f(ref):'Set your price');
+  let rows='',cta='',help='',dis=live||u<1;const hw=u==1?'hour':'hours';
+  if(side==='buy'){
+    if(pr==null){let rem=u,cost=0;for(const l of (SL?SL.asks:[])){const n=Math.min(rem,l.q);cost+=n*l.p;rem-=n;if(!rem)break}
+      if(SL&&SL.asks.length&&rem===0){rows=`<dt>Best offer</dt><dd>${f(SL.asks[0].p)}</dd><dt>Estimated total with fee</dt><dd>${f(cost*(1+FEE))}</dd>`;cta=`Buy ${u} ${hw} now`}
+      else{rows=`<dt>Hours on offer</dt><dd>${SL?SL.asks.reduce((a,l)=>a+l.q,0):0}</dd>`;cta='Not enough offers. Set a price to bid';dis=true}
+    }else{rows=`<dt>Your bid</dt><dd>${f(pr)}</dd><dt>Held until filled</dt><dd>${f(pr*u*(1+FEE))}</dd>`;cta=`Place bid for ${u} ${hw}`}
+    help='Buy now at the best offer, or set a price and wait for a seller. You can sell it back before it starts.';
+  }else if(side==='sell'){
+    rows=`<dt>Hours you hold here</dt><dd>${held}</dd>`+(pr?`<dt>You receive if sold</dt><dd>${f(pr*u)}</dd>`:'');cta=`Sell ${u} ${hw}`;dis=dis||held<u||pr==null;
+    help='List hours you hold. You are paid as soon as a buyer takes them.';
+  }else{
+    rows=`<dt>Paid after you deliver</dt><dd>${f((pr||0)*u)}</dd><dt>Deposit held (${Math.round(caps.dep*100)}%)</dt><dd>${f((pr||0)*u*caps.dep)}</dd><dt>You can offer up to</dt><dd>${caps.provide} h</dd>`;cta=`Offer ${u} ${hw}`;dis=dis||pr==null;
+    help='Your offer waits for a buyer. When it sells, the payment is held safely and released after you deliver the hour. Show up and check in, or you lose the deposit.';
+  }
+  $('#sum').innerHTML=rows;$('#shelp').textContent=help;const b=$('#go');b.textContent=live?'This hour has started':cta;b.disabled=dis;
+}
+function draw(){
+  const cv=$('#chart'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W)return;
+  if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+  const all=cand(),nC=Math.max(20,Math.floor((W-56)/9)),cs=all.slice(-nC);
+  if(!cs.length){x.fillStyle='#5B6B7B';x.font='14px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(SL?'No trades yet for this hour':'Loading…',W/2,H/2);$('#ohlc').textContent='';return}
+  const ub=SL.usual,padR=56,volH=H*.16,plotH=H-volH-14;
+  let lo=Math.min(...cs.map(c=>c.l),ub==null?Infinity:ub),hi=Math.max(...cs.map(c=>c.h),ub==null?-Infinity:ub);const pad=(hi-lo||.5)*.1;lo-=pad;hi+=pad;
+  const y=v=>6+plotH*(1-(v-lo)/(hi-lo)),cw=(W-padR)/Math.max(cs.length,nC/2);lay={cw,n:cs.length};
+  x.font='11px system-ui,sans-serif';x.textAlign='left';x.textBaseline='middle';
+  for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4,yy=y(v);x.strokeStyle='rgba(16,34,58,.09)';x.beginPath();x.moveTo(0,yy);x.lineTo(W-padR,yy);x.stroke();x.fillStyle='#5B6B7B';x.fillText(f(v),W-padR+6,yy)}
+  const mv=Math.max(1,...cs.map(c=>c.v)),G='#0B7A78',R='#BF3B36';
+  cs.forEach((c,i)=>{const cx=i*cw+cw/2,col=c.c>=c.o?G:R,bw=Math.max(2,Math.min(cw*.62,14));
+    x.globalAlpha=.3;x.fillStyle=col;const vh=c.v/mv*volH*.9;x.fillRect(cx-bw/2,H-vh,bw,vh);x.globalAlpha=1;
+    x.strokeStyle=col;x.fillStyle=col;x.beginPath();x.moveTo(cx,y(c.h));x.lineTo(cx,y(c.l));x.stroke();
+    const t1=y(Math.max(c.o,c.c)),t2=y(Math.min(c.o,c.c));x.fillRect(cx-bw/2,t1,bw,Math.max(1.5,t2-t1))});
+  if(ub!=null){x.setLineDash([2,4]);x.strokeStyle='#D99A00';x.beginPath();x.moveTo(0,y(ub));x.lineTo(W-padR,y(ub));x.stroke();x.setLineDash([]);x.fillStyle='#D99A00';x.fillText('usual',4,y(ub)-7)}
+  const lc=cs[cs.length-1],lp=lc.c,ly=y(lp),up=lp>=lc.o;
+  x.setLineDash([4,4]);x.strokeStyle=up?G:R;x.beginPath();x.moveTo(0,ly);x.lineTo(W-padR,ly);x.stroke();x.setLineDash([]);
+  x.fillStyle=up?G:R;x.fillRect(W-padR,ly-9,padR,18);x.fillStyle='#fff';x.fillText(f(lp),W-padR+6,ly);
+  if(hover!=null&&hover<cs.length){const cx=hover*cw+cw/2;x.strokeStyle='rgba(16,34,58,.4)';x.beginPath();x.moveTo(cx,0);x.lineTo(cx,H);x.stroke()}
+  const c=cs[hover==null?cs.length-1:Math.min(hover,cs.length-1)];
+  $('#ohlc').innerHTML=`<span class="${c.c>=c.o?'up':'dn'}">O ${f(c.o)}  H ${f(c.h)}  L ${f(c.l)}  C ${f(c.c)}</span>  ·  ${timeStr(c.k)}  ·  ${c.v} h`;
+}
+function renderWallet(){
+  const u=ME?ME.user:null;if(!u)return;
+  $('#wHandle').textContent='@'+u.handle;$('#wBal').textContent=f(u.bal);$('#keybox').value=L.token||'';
+  const bad=u.miss+u.slash,tot=u.att+u.deliv+bad;
+  $('#wStats').innerHTML=`<dt>Provider level</dt><dd>Level ${u.level}</dd><dt>Hours delivered</dt><dd>${u.deliv}</dd><dt>Sessions attended</dt><dd>${u.att}</dd><dt>Missed check-ins</dt><dd>${bad}</dd><dt>Reliability</dt><dd>${tot?Math.round(100*(u.att+u.deliv)/tot)+'%':'No record yet'}</dd>`;
+  morph($('#wRc'),RC.slice(0,10).map(r=>`<li><div><b>#${r.n} ${r.out}</b><div class="m">${label(r.t)} · @${r.provider} → @${r.holder} · ${r.h.slice(0,12)}…</div></div></li>`).join('')||'<li class="empty">Receipts appear after your first session ends.</li>');
+  morph($('#wLedger'),LG.map(e=>`<li><div>${e.n}<div class="m">${timeStr(e.t)}</div></div><div class="r ${e.d>0?'up':'dn'}"><b>${e.d>0?'+':''}${f(e.d)}</b></div></li>`).join('')||'<li class="empty">No activity yet.</li>');
+}
+function renderToken(){
+  const s=STAT||{vol:0,trades:0,burned:0,treasury:0,users:0};
+  $('#tStats').innerHTML=`<dt>Traders</dt><dd>${s.users}</dd><dt>Trades</dt><dd>${s.trades}</dd><dt>Hours traded</dt><dd>${s.vol}</dd><dt>$CLOCK burned</dt><dd>${f(s.burned)}</dd><dt>Fees to treasury</dt><dd>${f(s.treasury)}</dd>`;
+}
+function renderAll(){
+  if(!CFG)return;renderHead();
+  if(view==='home'){renderHours();renderPort()}else if(view==='detail')renderDetail();else if(view==='wallet')renderWallet();else renderToken();
+  renderTour();
+}
+
+/* ---------- routing ---------- */
+function route(){
+  const m=location.hash.match(/^#\/t\/(\d+)$/);
+  if(m&&+m[1]>now()&&L.token){selT=+m[1];view='detail';SL=null;hover=null;side='buy';$('#price').value='';$('#units').value=1}
+  else view=!L.token?'home':location.hash==='#/wallet'?'wallet':location.hash==='#/token'?'token':'home';
+  ['home','detail','wallet','token'].forEach(v=>{$('#'+v).hidden=view!==v});
+  $('#hdr').hidden=view!=='home';$('#ftr').hidden=view!=='home';
+  window.scrollTo(0,0);renderAll();poll();
+}
+function openSlot(t){fromHome=true;if(location.hash==='#/t/'+t)route();else location.hash='#/t/'+t}
+
+/* ---------- actions ---------- */
+async function go(){
+  const t=selT,u=Math.floor(+$('#units').value||0),pv=$('#price').value.trim();
+  const body={t,side:side==='buy'?'buy':'sell',kind:side==='provide'?'provide':side==='sell'?'resell':'buy',qty:u,price:pv===''?null:+pv};
+  $('#go').disabled=true;
+  try{
+    const r=await api('/api/orders',{method:'POST',body});L.nord=(L.nord||0)+1;L.t1=L.t1||Date.now();saveL();
+    toast(side==='buy'?(r.filled?`Bought ${r.filled} h${r.resting?`, bid placed for ${r.resting}`:''}`:`Bid placed for ${r.resting} h`):(r.filled?`Sold ${r.filled} h`:'Listed. Waiting for a buyer.'));
+    $('#price').value='';await Promise.all([refreshMe(),api('/api/slot/'+t).then(j=>{SL=j})]);
+  }catch(e){toast(e.message,1)}
+  renderAll();
+}
+async function act(a,id){
+  try{
+    if(a==='here'){await api('/api/checkin',{method:'POST',body:{unit:id}});toast('Checked in.')}
+    else if(a==='cancel'){await api('/api/orders/'+id,{method:'DELETE'});toast('Order cancelled. Funds returned.')}
+    await refreshMe();
+  }catch(e){toast(e.message,1)}
+  renderAll();
+}
+
+/* ---------- guided tour ---------- */
+function tbase(){L.tb={nord:L.nord||0}}
+const placed=()=>(L.nord||0)>((L.tb&&L.tb.nord)||0);
+const TOUR=[
+ {v:'home',t:'#walletBtn',h:'Your balance',x:'This is your $CLOCK. Tap it any time to open your wallet.',info:1},
+ {v:'home',t:'#hours',h:'Hours are markets',x:'Each box is one hour of someone’s time, priced by real offers and bids.',info:1},
+ {v:'home',t:'#hours button.h:not([disabled])',h:'Open an hour',x:'Tap any hour to see its market.',done:()=>view==='detail'||placed()},
+ {v:'detail',fb:()=>placed()?6:2,t:'#chart',h:'The chart',x:'Each candle is 5 minutes of real trades. Green rose, red fell.',info:1},
+ {v:'detail',fb:()=>placed()?6:2,t:'#book',h:'Offers and bids',x:'Offers are people selling their time. Bids are people wanting to buy.',info:1},
+ {v:'detail',fb:()=>placed()?6:2,t:'#go',h:'Place an order',x:'Buy at the best offer, set your own price, or choose “Offer your own time”.',done:()=>placed()},
+ {v:'detail',fb:()=>placed()?6:2,t:'#back',h:'Go back',x:'Tap All times.',done:()=>view==='home'},
+ {v:'home',t:'#plist',h:'Your orders and hours',x:'They show here. When your hour starts, tap Check in.',info:1,last:1}
+];
+let lastStep=-1,curSel=null,curAway=false;
+function placeCoach(el){
+  const c=$('#coach'),path=$('#tpath'),cw=c.offsetWidth,ch=c.offsetHeight,W=innerWidth,H=innerHeight;
+  if(!el){c.style.left=(W-cw)/2+'px';c.style.top=(H-ch-14)+'px';path.setAttribute('d','');return}
+  const r=el.getBoundingClientRect(),vt=Math.max(r.top,0),vb=Math.min(r.bottom,H),cx=Math.min(Math.max(r.left+r.width/2,16),W-16);
+  let top,ay,by;
+  if(vt>=ch+50){top=vt-ch-42;ay=top+ch;by=vt-4}
+  else if(H-vb>=ch+50){top=vb+42;ay=top;by=vb+4}
+  else{top=10;ay=top+ch;by=Math.min(Math.max(vt+16,ay+34),H-20)}
+  const left=Math.min(Math.max(cx-cw/2,10),W-cw-10),sx=Math.min(Math.max(cx,left+24),left+cw-24);
+  c.style.left=left+'px';c.style.top=top+'px';
+  path.setAttribute('d',`M${sx},${ay} Q${(sx+cx)/2+(cx>=sx?42:-42)},${(ay+by)/2} ${cx},${by}`);
+}
+function relayout(){const c=$('#coach');if(c.hidden)return;placeCoach(curAway?null:document.querySelector(curSel))}
+window.addEventListener('scroll',()=>requestAnimationFrame(relayout),{passive:true});
+window.addEventListener('resize',()=>{relayout();if(view==='detail')draw()});
+function renderTour(){
+  const card=$('#coach');document.querySelectorAll('.tour-hl').forEach(e=>e.classList.remove('tour-hl'));
+  const blocked=!$('#welcome').hidden||!$('#connect').hidden;
+  if(L.tour==null||!L.token||blocked){card.hidden=true;$('#tpath').setAttribute('d','');return}
+  let g=0;while(TOUR[L.tour]&&TOUR[L.tour].done&&TOUR[L.tour].done()&&g++<12)L.tour++;
+  let st=TOUR[L.tour];
+  if(!st){L.tour=null;saveL();card.hidden=true;$('#tpath').setAttribute('d','');return}
+  if(st.v==='detail'&&view!=='detail'){L.tour=st.fb();st=TOUR[L.tour]}
+  const away=view!==st.v;card.hidden=false;
+  $('#cstep').textContent=(L.tour+1)+'/'+TOUR.length;
+  $('#ctitle').textContent=away?'Back to the list':st.h;
+  $('#ctext').textContent=away?'Let’s return to the list of hours.':st.x;
+  const nb=$('#cnext');nb.hidden=!(away||st.info);nb.textContent=away?'Back':st.last?'Finish':'Next';
+  curSel=st.t;curAway=away;
+  const el=away?null:document.querySelector(st.t);
+  if(el){el.classList.add('tour-hl');if(lastStep!==L.tour){lastStep=L.tour;el.scrollIntoView({block:'center',behavior:'smooth'})}}
+  placeCoach(el);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;logAct(b);
+  if(b.dataset.close)$('#'+b.dataset.close).hidden=true;
+  else if(b.id==='legalBtn'||b.id==='legalBtn2')$('#legalm').hidden=false;
+  else if(b.id==='helpBtn')$('#helpm').hidden=false;
+  else if(b.id==='cskip'){L.tour=null;saveL();renderAll();toast('Tour skipped. Replay it from the bottom of the page.')}
+  else if(b.id==='cnext'){const st=TOUR[L.tour];if(st&&view!==st.v)location.hash='#/';else{L.tour=st&&st.last?null:L.tour+1;saveL();renderAll()}}
+  else if(b.id==='tourBtn'){tbase();L.tour=0;lastStep=-1;saveL();if(view!=='home')location.hash='#/';renderAll()}
+  else if(b.id==='fb'){$('#fbm').hidden=false;$('#fbtext').focus()}
+  else if(b.id==='fbclose')$('#fbm').hidden=true;
+  else if(b.id==='fbcopy'){const r=report();(navigator.clipboard?navigator.clipboard.writeText(r):Promise.reject()).then(()=>toast('Report copied. Send it to the team.')).catch(()=>{$('#fbout').value=r;$('#fbout').hidden=false;$('#fbout').select();toast('Copy the text from the box.')})}
+  else if(b.id==='conngo'){const u=$('#apiurl').value.trim().replace(/\/$/,'');if(!u)return;L.api=u;saveL();location.href=location.pathname+'?api='+encodeURIComponent(u)}
+  else if(b.id==='start')joinNow();
+  else if(b.id==='haskey')$('#keyrow').hidden=false;
+  else if(b.id==='keygo')keyIn();
+  else if(b.id==='logout'){if(confirm('Log out of this device? Save your login key first if you want to sign in again.'))logout()}
+  else if(b.id==='copykey'){try{await navigator.clipboard.writeText(L.token||'');toast('Login key copied.')}catch(x){$('#keybox').select();toast('Copy the key from the box.')}}
+  else if(b.id==='faucet'){try{await api('/api/faucet',{method:'POST'});toast('Added 100 test credits.');await refreshMe();renderAll()}catch(x){toast(x.message,1)}}
+  else if(b.id==='verify'){try{const j=await api('/api/verify');toast(j.ok?`Chain intact: ${j.n} receipts verified.`:'Chain broken at receipt #'+j.brokenAt+'.',!j.ok)}catch(x){toast(x.message,1)}}
+  else if(b.id==='skip'){try{await api('/api/_skip',{method:'POST',body:{ms:18e5}});toast('Server clock moved ahead 30 minutes.');poll()}catch(x){toast(x.message,1)}}
+  else if(b.id==='walletBtn'){fromHome=true;location.hash='#/wallet'}
+  else if(b.id==='toToken'){fromHome=true;location.hash='#/token'}
+  else if(b.id==='back'||b.id==='back2'||b.id==='back3'){if(fromHome)history.back();else location.hash='#/'}
+  else if(b.id==='toProvide'){side=side==='provide'?'buy':'provide';$('#price').value='';updTrade()}
+  else if(b.id==='go')go();
+  else if(b.dataset.d!==undefined){selDay=+b.dataset.d;renderAll()}
+  else if(b.dataset.h!==undefined)openSlot(tsl(selDay,+b.dataset.h));
+  else if(b.dataset.o)openSlot(+b.dataset.o);
+  else if(b.dataset.s){side=b.dataset.s;updTrade()}
+  else if(b.dataset.n){$('#units').value=Math.min(4,Math.max(1,Math.floor(+$('#units').value||1)+ +b.dataset.n));updTrade()}
+  else if(b.dataset.p){pt=b.dataset.p;if(pt==='hist')api('/api/ledger').then(j=>{LG=j.items;renderPort()}).catch(()=>{});renderPort()}
+  else if(b.dataset.oc)act('cancel',b.dataset.oc);
+  else if(b.dataset.a)act(b.dataset.a,b.dataset.id);
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')['legalm','helpm','fbm'].forEach(id=>$('#'+id).hidden=true);if(e.key==='Enter'&&e.target.id==='handle')joinNow();if(e.key==='Enter'&&e.target.id==='apiurl')$('#conngo').click()});
+['units','price'].forEach(id=>$('#'+id).addEventListener('input',updTrade));
+const cv=$('#chart');
+cv.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect();hover=Math.max(0,Math.min(lay.n-1,Math.floor((e.clientX-r.left)/lay.cw)));draw()});
+cv.addEventListener('pointerleave',()=>{hover=null;draw()});
+window.addEventListener('hashchange',route);
+let lastErr=0;window.addEventListener('error',()=>{if(Date.now()-lastErr>10000){lastErr=Date.now();toast('Something went wrong. Tap Send feedback to tell us.',1)}});
+boot().catch(e=>{const bt=$('#boot');if(bt)bt.remove();showConnect('Something went wrong while starting ('+e.message+'). Check the server address and try again.')});
+
+</script>
+</body>
+</html>
